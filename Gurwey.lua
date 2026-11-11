@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - BARISTA CUSTOM UI (NO DEPENDENCY)
+-- KEREN HUB - BARISTA CUSTOM UI + SEATED TELEPORT BYPASS
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -155,16 +155,24 @@ local function selectBaristaJob()
     end)
 end
 
-local function smoothMoveTo(targetCFrame)
+-- 3. TRIK GACOR: SEATED TELEPORT (Bypass Anti-Cheat Instant Move)
+local function seatedTeleport(targetCFrame)
     pcall(function()
         local char = LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        local distance = (hrp.Position - targetCFrame.Position).Magnitude
-        local duration = distance / 3
-        local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-        tween:Play()
-        tween.Completed:Wait()
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not humanoid then return end
+
+        -- Paksa status duduk agar server mendeteksinya sebagai status kendaraan/aman
+        humanoid.Sit = true
+        task.wait(0.05)
+
+        -- Teleport instan CFrame ke lokasi tujuan
+        hrp.CFrame = targetCFrame
+        task.wait(0.1)
+
+        -- Berdiri kembali
+        humanoid.Sit = false
     end)
 end
 
@@ -183,38 +191,38 @@ local function fireNearestPrompt()
     end)
 end
 
--- 3. MAIN AUTO-FARM THREAD
+-- 4. MAIN AUTO-FARM THREAD
 task.spawn(function()
     while true do
         if AutoBaristaEnabled then
             pcall(function()
                 selectBaristaJob()
-                task.wait(1)
+                task.wait(0.5)
 
-                -- Step 1: Shift
+                -- Step 1: Shift (Pakai Teleport Duduk)
                 StatusText.Text = "Status: Ambil Shift..."
-                smoothMoveTo(COORDS.ShiftSpot)
+                seatedTeleport(COORDS.ShiftSpot)
                 fireNearestPrompt()
-                repeat task.wait(0.2) until not AutoBaristaEnabled or CurrentState == "JOB_STARTED" or CurrentState == "NPC_ARRIVED"
+                task.wait(0.3)
 
                 -- Step 2: Brew Kopi
                 if AutoBaristaEnabled then
                     StatusText.Text = "Status: Sedang Menyeduh..."
-                    smoothMoveTo(COORDS.CoffeeMachine)
+                    seatedTeleport(COORDS.CoffeeMachine)
                     BaristaEvent:FireServer("TryBrew")
                     task.wait(0.3)
                     if CurrentToken then
                         BaristaEvent:FireServer("CompleteMinigame", { ["Token"] = CurrentToken })
                     end
-                    repeat task.wait(0.2) until not AutoBaristaEnabled or CurrentState == "READY"
+                    task.wait(0.5)
                 end
 
                 -- Step 3: Antar ke Pelanggan
                 if AutoBaristaEnabled then
                     StatusText.Text = "Status: Mengantar Pesanan..."
-                    smoothMoveTo(COORDS.Customer)
+                    seatedTeleport(COORDS.Customer)
                     BaristaEvent:FireServer("ServeOrder")
-                    repeat task.wait(0.2) until not AutoBaristaEnabled or CurrentState == "DONE"
+                    task.wait(0.5)
                 end
 
                 CurrentState = "IDLE"
@@ -241,4 +249,4 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("[Keren Hub] Custom Floating UI Berhasil Dimuat!")
+print("[Keren Hub] Custom Floating UI + Seated Teleport Berhasil Dimuat!")
