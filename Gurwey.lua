@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - BARISTA AUTO FARM (WIND UI + BAR GEDE FIXED)
+-- KEREN HUB - BARISTA AUTO FARM (FINAL FIXED DELAY 3S)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -117,20 +117,18 @@ task.spawn(function()
     end)
 end)
 
--- 1. FITUR "BAR GEDE" & AUTO CLICK MINIGAME GUI
+-- Fitur "Bar Gede" & Auto Click Minigame GUI
 task.spawn(function()
     while task.wait(0.05) do
         pcall(function()
             if AutoBaristaEnabled then
                 local baristaGui = PlayerGui:FindFirstChild("BaristaGUI")
                 if baristaGui then
-                    -- Perbesar TargetZone minigame otomatis jadi fullscreen/full size
                     local targetZone = baristaGui:FindFirstChild("TargetZone", true)
                     if targetZone then
                         targetZone.Size = UDim2.new(targetZone.Size.X.Scale, targetZone.Size.X.Offset, 1, 0)
                     end
                     
-                    -- Auto click tombol di GUI minigame kalau ada firesignal
                     for _, v in pairs(baristaGui:GetDescendants()) do
                         if (v:IsA("TextButton") or v:IsA("ImageButton")) and firesignal then
                             firesignal(v.MouseButton1Click)
@@ -142,17 +140,18 @@ task.spawn(function()
     end
 end)
 
--- Pilih Job Barista
+-- Pilih Job Barista (Delay 3 detik pas)
 local function selectBaristaJob()
     pcall(function()
         local Event = ReplicatedStorage:FindFirstChild("JobEvents") and ReplicatedStorage.JobEvents:FindFirstChild("TeamChangeRequest")
         if Event then 
             Event:FireServer("Barista", 11378976, 1, 0, "Detector") 
+            task.wait(3) -- Delay aman 3 detik sesuai request
         end
     end)
 end
 
--- SEATED TELEPORT (Ritme Dihaluskan)
+-- Seated Teleport (Ritme Dihaluskan)
 local function seatedTeleport(targetCFrame)
     pcall(function()
         local char = LocalPlayer.Character
@@ -206,9 +205,8 @@ task.spawn(function()
                 -- Step 1: Pilih Job Barista
                 StatusText.Text = "Status: Memilih Job Barista..."
                 selectBaristaJob()
-                task.wait(0.6)
 
-                -- Step 2: Teleport ke Shift Spot (Ritme Aman)
+                -- Step 2: Teleport ke Shift Spot setelah delay 3 detik
                 StatusText.Text = "Status: Teleport ke Shift Spot..."
                 seatedTeleport(COORDS.ShiftSpot)
                 task.wait(0.3)
@@ -266,4 +264,4 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("[Wind UI] Barista Auto-Farm (Complete with Bar Gede) Berhasil Dimuat!")
+print("[Wind UI] Barista Auto-Farm (Delay 3s Fixed) Berhasil Dimuat!")
