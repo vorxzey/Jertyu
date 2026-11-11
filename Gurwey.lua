@@ -1,9 +1,8 @@
 -- ==========================================
--- KEREN HUB - BARISTA AUTO FARM (FINAL FIXED DELAY 3S)
+-- KEREN HUB - BARISTA AUTO FARM (ULTIMATE ANIMATED VERSION)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local VirtualUser = game:GetService("VirtualUser")
 local Workspace = game:GetService("Workspace")
 
@@ -36,7 +35,6 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 14)
 UICorner.Parent = MainFrame
 
--- Gradient Dark Fill ala iOS Minimalist
 local UIGradient = Instance.new("UIGradient")
 UIGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
@@ -88,7 +86,7 @@ BtnCorner.CornerRadius = UDim.new(0, 10)
 BtnCorner.Parent = ToggleBtn
 
 -- ==========================================
--- LOGIC AUTO-FARM & REMOTE SPY VERIFIED
+-- LOGIC AUTO-FARM & WAYPOINT TELEPORT
 -- ==========================================
 local AutoBaristaEnabled = false
 local BaristaEvent = ReplicatedStorage:WaitForChild("BaristaAssets"):WaitForChild("Events"):WaitForChild("BaristaEvent")
@@ -103,9 +101,19 @@ BaristaEvent.OnClientEvent:Connect(function(action, data)
 end)
 
 local COORDS = {
-    ShiftSpot     = CFrame.new(-4992.262, 4.287, -716.253),
-    CoffeeMachine = CFrame.new(-4997.648, 4.287, -794.613),
-    Customer      = CFrame.new(-4996.451, 4.287, -760.959)
+    ShiftSpot     = Vector3.new(-4992.262, 4.287, -716.253),
+    CoffeeMachine = Vector3.new(-4997.648, 4.287, -794.613),
+    Customer      = Vector3.new(-4996.451, 4.287, -760.959)
+}
+
+-- List Kordinat Waypoint Slow Load Seated Teleport
+local shiftWaypoints = {
+    CFrame.new(-898.326, 2.788, -630.031),
+    CFrame.new(-2192.834, 37.488, -582.452),
+    CFrame.new(-3533.805, 2.759, -582.758),
+    CFrame.new(-4554.525, 2.759, -581.123),
+    CFrame.new(-4943.070, 2.759, -582.773),
+    CFrame.new(COORDS.ShiftSpot.X, COORDS.ShiftSpot.Y, COORDS.ShiftSpot.Z)
 }
 
 -- Anti-AFK
@@ -140,45 +148,64 @@ task.spawn(function()
     end
 end)
 
--- Pilih Job Barista (Delay 3 detik pas)
+-- Pilih Job Barista (Delay 3 detik)
 local function selectBaristaJob()
     pcall(function()
         local Event = ReplicatedStorage:FindFirstChild("JobEvents") and ReplicatedStorage.JobEvents:FindFirstChild("TeamChangeRequest")
         if Event then 
             Event:FireServer("Barista", 11378976, 1, 0, "Detector") 
-            task.wait(3) -- Delay aman 3 detik sesuai request
+            task.wait(3) 
         end
     end)
 end
 
--- Seated Teleport (Ritme Dihaluskan)
-local function seatedTeleport(targetCFrame)
+-- Slow Load Seated Teleport dengan jeda 0,5 detik per waypoint
+local function slowLoadSeatedTeleport(waypointList)
     pcall(function()
         local char = LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         local humanoid = char and char:FindFirstChildOfClass("Humanoid")
         if not hrp or not humanoid then return end
 
-        humanoid.Sit = true
-        task.wait(0.2)  
-        hrp.CFrame = targetCFrame
-        task.wait(0.3)  
+        for _, targetCFrame in ipairs(waypointList) do
+            if not AutoBaristaEnabled then break end
+            humanoid.Sit = true
+            task.wait(0.15)
+            hrp.CFrame = targetCFrame
+            task.wait(0.5)
+        end
+
         humanoid.Sit = false
-        task.wait(0.2)  
+        task.wait(0.2)
     end)
 end
 
--- Smooth Move (Jalan Santai di Area Kerja)
-local function smoothMoveTo(targetCFrame)
+-- Fungsi Jalan Melangkah Normal (Dengan Orientasi Hadap Biar Animasi Keluar)
+local function walkTo(targetVector)
     pcall(function()
         local char = LocalPlayer.Character
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        local distance = (hrp.Position - targetCFrame.Position).Magnitude
-        local duration = math.max(distance / 12, 0.4)
-        local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Sine), {CFrame = targetCFrame})
-        tween:Play()
-        tween.Completed:Wait()
+        if not humanoid or not hrp then return end
+
+        local lookAtTarget = Vector3.new(targetVector.X, hrp.Position.Y, targetVector.Z)
+        hrp.CFrame = CFrame.new(hrp.Position, lookAtTarget)
+        
+        humanoid:MoveTo(targetVector)
+        
+        local startTime = tick()
+        while AutoBaristaEnabled do
+            local currentPos = hrp.Position
+            local dist = (Vector3.new(currentPos.X, 0, currentPos.Z) - Vector3.new(targetVector.X, 0, targetVector.Z)).Magnitude
+            
+            if dist <= 3.5 or (tick() - startTime) > 6 then
+                humanoid:MoveTo(currentPos)
+                break
+            end
+            
+            hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetVector.X, hrp.Position.Y, targetVector.Z))
+            task.wait(0.1)
+        end
     end)
 end
 
@@ -206,25 +233,25 @@ task.spawn(function()
                 StatusText.Text = "Status: Memilih Job Barista..."
                 selectBaristaJob()
 
-                -- Step 2: Teleport ke Shift Spot setelah delay 3 detik
+                -- Step 2: Slow Load Seated Teleport ke Shift Spot
                 StatusText.Text = "Status: Teleport ke Shift Spot..."
-                seatedTeleport(COORDS.ShiftSpot)
-                task.wait(0.3)
+                slowLoadSeatedTeleport(shiftWaypoints)
+                task.wait(0.5)
                 
-                -- Step 3: Toggle Job buat mulai shift
+                -- Step 3: Toggle Job & ProximityPrompt
                 BaristaEvent:FireServer("ToggleJob")
                 fireNearestPrompt()
                 task.wait(1)
 
-                -- Loop Konsisten Siklus Kerja
+                -- Loop Siklus Kerja (Jalan Kaki Normal dengan Animasi)
                 while AutoBaristaEnabled do
                     StatusText.Text = "Status: Memanggil Pelanggan..."
                     BaristaEvent:FireServer("RequestCustomer")
                     task.wait(1)
                     if not AutoBaristaEnabled then break end
 
-                    StatusText.Text = "Status: Sedang Menyeduh..."
-                    smoothMoveTo(COORDS.CoffeeMachine)
+                    StatusText.Text = "Status: Berjalan ke Mesin Kopi..."
+                    walkTo(COORDS.CoffeeMachine)
                     BaristaEvent:FireServer("TryBrew")
                     task.wait(0.5)
 
@@ -235,8 +262,8 @@ task.spawn(function()
                     task.wait(1)
                     if not AutoBaristaEnabled then break end
 
-                    StatusText.Text = "Status: Mengantar Pesanan..."
-                    smoothMoveTo(COORDS.Customer)
+                    StatusText.Text = "Status: Berjalan ke Pelanggan..."
+                    walkTo(COORDS.Customer)
                     BaristaEvent:FireServer("ServeOrder")
                     
                     StatusText.Text = "Status: Selesai, Next Customer..."
@@ -264,4 +291,4 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("[Wind UI] Barista Auto-Farm (Delay 3s Fixed) Berhasil Dimuat!")
+print("[Wind UI] Barista Auto-Farm Animated Version Berhasil Dimuat!")
