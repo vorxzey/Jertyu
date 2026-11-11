@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - BARISTA AUTO FARM (ULTIMATE ANIMATED VERSION)
+-- KEREN HUB - BARISTA AUTO FARM (FINAL ULTIMATE CLEAN VERSION)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -180,7 +180,7 @@ local function slowLoadSeatedTeleport(waypointList)
     end)
 end
 
--- Fungsi Jalan Melangkah Normal (Dengan Orientasi Hadap Biar Animasi Keluar)
+-- Fungsi Jalan Melangkah Normal (Anti Macet / Bersih dari CFrame Loop)
 local function walkTo(targetVector)
     pcall(function()
         local char = LocalPlayer.Character
@@ -188,23 +188,19 @@ local function walkTo(targetVector)
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not humanoid or not hrp then return end
 
-        local lookAtTarget = Vector3.new(targetVector.X, hrp.Position.Y, targetVector.Z)
-        hrp.CFrame = CFrame.new(hrp.Position, lookAtTarget)
+        -- Arahkan pandangan ke tujuan sekali di awal biar animasi jalannya maju ke depan
+        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetVector.X, hrp.Position.Y, targetVector.Z))
         
+        -- Perintahkan humanoid berjalan tanpa di-override paksa terus-menerus
         humanoid:MoveTo(targetVector)
         
         local startTime = tick()
         while AutoBaristaEnabled do
-            local currentPos = hrp.Position
-            local dist = (Vector3.new(currentPos.X, 0, currentPos.Z) - Vector3.new(targetVector.X, 0, targetVector.Z)).Magnitude
-            
+            local dist = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(targetVector.X, 0, targetVector.Z)).Magnitude
             if dist <= 3.5 or (tick() - startTime) > 6 then
-                humanoid:MoveTo(currentPos)
                 break
             end
-            
-            hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetVector.X, hrp.Position.Y, targetVector.Z))
-            task.wait(0.1)
+            task.wait(0.2)
         end
     end)
 end
@@ -243,7 +239,7 @@ task.spawn(function()
                 fireNearestPrompt()
                 task.wait(1)
 
-                -- Loop Siklus Kerja (Jalan Kaki Normal dengan Animasi)
+                -- Loop Siklus Kerja (Jalan Kaki Normal + Auto Bar Gede)
                 while AutoBaristaEnabled do
                     StatusText.Text = "Status: Memanggil Pelanggan..."
                     BaristaEvent:FireServer("RequestCustomer")
@@ -257,9 +253,10 @@ task.spawn(function()
 
                     local tokenToUse = LatestToken or "6c0c8fd5-012a-4566-85dc-a5edcbb5cd00"
                     BaristaEvent:FireServer("StartMinigame", { Token = tokenToUse })
-                    task.wait(0.3)
-                    BaristaEvent:FireServer("CompleteMinigame", { Token = tokenToUse })
-                    task.wait(1)
+                    
+                    -- Karena Bar Gede udah auto-selesaiin minigame instan, cukup jeda santai
+                    StatusText.Text = "Status: Meracik Kopi (Auto Bar Gede)..."
+                    task.wait(1.5)
                     if not AutoBaristaEnabled then break end
 
                     StatusText.Text = "Status: Berjalan ke Pelanggan..."
@@ -291,4 +288,4 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("[Wind UI] Barista Auto-Farm Animated Version Berhasil Dimuat!")
+print("[Wind UI] Barista Auto-Farm Final Clean Version Berhasil Dimuat!")
