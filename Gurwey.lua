@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - BARISTA CUSTOM UI + SEATED TELEPORT BYPASS
+-- KEREN HUB - BARISTA AUTO FARM (WIND UI STYLE)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,101 +11,93 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Hapus UI lama kalau script-nya di-execute ulang
-if PlayerGui:FindFirstChild("KerenHubBarista") then
-    PlayerGui.KerenHubBarista:Destroy()
+if PlayerGui:FindFirstChild("WindUIBarista") then
+    PlayerGui.WindUIBarista:Destroy()
 end
 
 -- ==========================================
--- MEMBUAT CUSTOM UI (FLOATING WINDOW)
+-- MEMBUAT CUSTOM WIND UI (MINIMALIST iOS DARK STYLE)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KerenHubBarista"
+ScreenGui.Name = "WindUIBarista"
 ScreenGui.Parent = PlayerGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-MainFrame.Position = UDim2.new(0.5, -110, 0.1, 0)
-MainFrame.Size = UDim2.new(0, 220, 0, 110)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+MainFrame.Position = UDim2.new(0.5, -125, 0.1, 0)
+MainFrame.Size = UDim2.new(0, 250, 0, 135)
 MainFrame.Active = true
-MainFrame.Draggable = true -- Bisa digeser-geser pakai mouse/jari!
+MainFrame.Draggable = true
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.CornerRadius = UDim.new(0, 14)
 UICorner.Parent = MainFrame
 
+-- Gradient Dark Fill ala iOS Minimalist
+local UIGradient = Instance.new("UIGradient")
+UIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))
+})
+UIGradient.Rotation = 45
+UIGradient.Parent = MainFrame
+
 local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(50, 50, 65)
-UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(60, 60, 80)
+UIStroke.Thickness = 1.5
 UIStroke.Parent = MainFrame
 
--- Title
+-- Title Header
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
 Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 0, 0, 10)
-Title.Size = UDim2.new(1, 0, 0, 25)
+Title.Position = UDim2.new(0, 0, 0, 12)
+Title.Size = UDim2.new(1, 0, 0, 22)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "☕ Keren Hub Barista"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 14
+Title.Text = "☕ Wind UI • Barista Auto-Farm"
+Title.TextColor3 = Color3.fromRGB(240, 240, 255)
+Title.TextSize = 13
 
--- Status Text
+-- Status Text Label
 local StatusText = Instance.new("TextLabel")
 StatusText.Parent = MainFrame
 StatusText.BackgroundTransparency = 1
-StatusText.Position = UDim2.new(0, 0, 0, 35)
-StatusText.Size = UDim2.new(1, 0, 0, 20)
+StatusText.Position = UDim2.new(0, 10, 0, 42)
+StatusText.Size = UDim2.new(1, -20, 0, 25)
 StatusText.Font = Enum.Font.Gotham
-StatusText.Text = "Status: Mati 🔴"
-StatusText.TextColor3 = Color3.fromRGB(180, 180, 180)
+StatusText.Text = "Status: Standby (Mati 🔴)"
+StatusText.TextColor3 = Color3.fromRGB(170, 170, 190)
 StatusText.TextSize = 11
 
--- Toggle Button (On/Off)
+-- Toggle Button (Wind UI Style)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Parent = MainFrame
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Merah (Off)
-ToggleBtn.Position = UDim2.new(0.1, 0, 0, 62)
-ToggleBtn.Size = UDim2.new(0.8, 0, 0, 32)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+ToggleBtn.Position = UDim2.new(0.08, 0, 0, 78)
+ToggleBtn.Size = UDim2.new(0.84, 0, 0, 36)
 ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.Text = "AUTO FARM: OFF"
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBtn.TextSize = 12
 
 local BtnCorner = Instance.new("UICorner")
-BtnCorner.CornerRadius = UDim.new(0, 8)
+BtnCorner.CornerRadius = UDim.new(0, 10)
 BtnCorner.Parent = ToggleBtn
 
 -- ==========================================
--- LOGIC AUTO-FARM & STATE
+-- LOGIC AUTO-FARM & REMOTE SPY VERIFIED
 -- ==========================================
 local AutoBaristaEnabled = false
-local CurrentState = "IDLE" 
-
 local BaristaEvent = ReplicatedStorage:WaitForChild("BaristaAssets"):WaitForChild("Events"):WaitForChild("BaristaEvent")
-local CurrentToken = nil
+local LatestToken = nil
 
 BaristaEvent.OnClientEvent:Connect(function(action, data)
-    if action == "JobStarted" or action == "SpawnNPC" then
-        if type(data) == "table" and data.Token then
-            CurrentToken = data.Token
-        end
-    end
-end)
-
--- Tangkap Notif Teks In-Game
-PlayerGui.DescendantAdded:Connect(function(v)
     pcall(function()
-        if AutoBaristaEnabled and (v:IsA("TextLabel") or v:IsA("TextButton")) then
-            local text = v.Text
-            if text:find("Shift di mulai") then CurrentState = "JOB_STARTED"
-            elseif text:find("Npc") then CurrentState = "NPC_ARRIVED"
-            elseif text:find("Sedang menyeduh") then CurrentState = "BREWING"
-            elseif text:find("Pesanan sudah siap") then CurrentState = "READY"
-            elseif text:find("Kerja bagus") then CurrentState = "DONE"
-            end
+        if type(data) == "table" and data.Token then
+            LatestToken = data.Token
         end
     end)
 end)
@@ -116,30 +108,7 @@ local COORDS = {
     Customer      = CFrame.new(-4996.451, 4.287, -760.959)
 }
 
--- 1. METODE "BAR GEDE" & AUTO CLICK (Jalan terus selama Toggle ON)
-task.spawn(function()
-    while task.wait(0.05) do
-        pcall(function()
-            if AutoBaristaEnabled then
-                local baristaGui = PlayerGui:FindFirstChild("BaristaGUI")
-                if baristaGui then
-                    local targetZone = baristaGui:FindFirstChild("TargetZone", true)
-                    if targetZone then
-                        targetZone.Size = UDim2.new(targetZone.Size.X.Scale, targetZone.Size.X.Offset, 1, 0)
-                    end
-                    
-                    for _, v in pairs(baristaGui:GetDescendants()) do
-                        if (v:IsA("TextButton") or v:IsA("ImageButton")) and firesignal then
-                            firesignal(v.MouseButton1Click)
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
-
--- 2. ANTI-AFK
+-- Anti-AFK
 task.spawn(function()
     LocalPlayer.Idled:Connect(function()
         VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
@@ -148,14 +117,7 @@ task.spawn(function()
     end)
 end)
 
-local function selectBaristaJob()
-    pcall(function()
-        local Event = ReplicatedStorage:FindFirstChild("JobEvents") and ReplicatedStorage.JobEvents:FindFirstChild("TeamChangeRequest")
-        if Event then Event:FireServer("Barista", 11378976, 1, 0, "Detector") end
-    end)
-end
-
--- 3. TRIK GACOR: SEATED TELEPORT (Bypass Anti-Cheat Instant Move)
+-- Seated Teleport (Ke Shift Spot Jarak Jauh)
 local function seatedTeleport(targetCFrame)
     pcall(function()
         local char = LocalPlayer.Character
@@ -163,16 +125,25 @@ local function seatedTeleport(targetCFrame)
         local humanoid = char and char:FindFirstChildOfClass("Humanoid")
         if not hrp or not humanoid then return end
 
-        -- Paksa status duduk agar server mendeteksinya sebagai status kendaraan/aman
         humanoid.Sit = true
         task.wait(0.05)
-
-        -- Teleport instan CFrame ke lokasi tujuan
         hrp.CFrame = targetCFrame
         task.wait(0.1)
-
-        -- Berdiri kembali
         humanoid.Sit = false
+    end)
+end
+
+-- Smooth Move (Jalan Santai di Area Kerja)
+local function smoothMoveTo(targetCFrame)
+    pcall(function()
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local distance = (hrp.Position - targetCFrame.Position).Magnitude
+        local duration = math.max(distance / 12, 0.4)
+        local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Sine), {CFrame = targetCFrame})
+        tween:Play()
+        tween.Completed:Wait()
     end)
 end
 
@@ -191,45 +162,48 @@ local function fireNearestPrompt()
     end)
 end
 
--- 4. MAIN AUTO-FARM THREAD
+-- MAIN LOOP (Mulai dari Request Customer sesuai request)
 task.spawn(function()
     while true do
         if AutoBaristaEnabled then
             pcall(function()
-                selectBaristaJob()
-                task.wait(0.5)
-
-                -- Step 1: Shift (Pakai Teleport Duduk)
-                StatusText.Text = "Status: Ambil Shift..."
+                -- Step Inisialisasi Awal (Ambil Shift)
+                StatusText.Text = "Status: Mengambil Shift Awal..."
                 seatedTeleport(COORDS.ShiftSpot)
-                fireNearestPrompt()
                 task.wait(0.3)
+                BaristaEvent:FireServer("ToggleJob")
+                fireNearestPrompt()
+                task.wait(1)
 
-                -- Step 2: Brew Kopi
-                if AutoBaristaEnabled then
+                -- Loop Konsisten di Request Customer
+                while AutoBaristaEnabled do
+                    StatusText.Text = "Status: Memanggil Pelanggan..."
+                    BaristaEvent:FireServer("RequestCustomer")
+                    task.wait(1)
+                    if not AutoBaristaEnabled then break end
+
                     StatusText.Text = "Status: Sedang Menyeduh..."
-                    seatedTeleport(COORDS.CoffeeMachine)
+                    smoothMoveTo(COORDS.CoffeeMachine)
                     BaristaEvent:FireServer("TryBrew")
+                    task.wait(0.5)
+
+                    local tokenToUse = LatestToken or "6c0c8fd5-012a-4566-85dc-a5edcbb5cd00"
+                    BaristaEvent:FireServer("StartMinigame", { Token = tokenToUse })
                     task.wait(0.3)
-                    if CurrentToken then
-                        BaristaEvent:FireServer("CompleteMinigame", { ["Token"] = CurrentToken })
-                    end
-                    task.wait(0.5)
-                end
+                    BaristaEvent:FireServer("CompleteMinigame", { Token = tokenToUse })
+                    task.wait(1)
+                    if not AutoBaristaEnabled then break end
 
-                -- Step 3: Antar ke Pelanggan
-                if AutoBaristaEnabled then
                     StatusText.Text = "Status: Mengantar Pesanan..."
-                    seatedTeleport(COORDS.Customer)
+                    smoothMoveTo(COORDS.Customer)
                     BaristaEvent:FireServer("ServeOrder")
-                    task.wait(0.5)
+                    
+                    StatusText.Text = "Status: Selesai, Next Customer..."
+                    task.wait(1.5)
                 end
-
-                CurrentState = "IDLE"
-                StatusText.Text = "Status: Siklus Selesai, Mengulang..."
             end)
         else
-            StatusText.Text = "Status: Standby (Mati)"
+            StatusText.Text = "Status: Standby (Mati 🔴)"
             task.wait(0.5)
         end
         task.wait(0.5)
@@ -241,12 +215,12 @@ ToggleBtn.MouseButton1Click:Connect(function()
     AutoBaristaEnabled = not AutoBaristaEnabled
     if AutoBaristaEnabled then
         ToggleBtn.Text = "AUTO FARM: ON"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Hijau
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 90)
     else
         ToggleBtn.Text = "AUTO FARM: OFF"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Merah
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
         StatusText.Text = "Status: Dimatikan Manual"
     end
 end)
 
-print("[Keren Hub] Custom Floating UI + Seated Teleport Berhasil Dimuat!")
+print("[Wind UI] Barista Auto-Farm Berhasil Dimuat!")
