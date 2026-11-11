@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - BARISTA AUTO FARM (PURE PRECISION BAR TAP-TAP)
+-- KEREN HUB - BARISTA AUTO FARM (NORMAL PROXIMITY & TAP FIX)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -55,7 +55,7 @@ Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 0, 0, 12)
 Title.Size = UDim2.new(1, 0, 0, 22)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "☕ Wind UI • Precision Tap Bar"
+Title.Text = "☕ Wind UI • Barista Auto-Farm"
 Title.TextColor3 = Color3.fromRGB(240, 240, 255)
 Title.TextSize = 13
 
@@ -179,6 +179,7 @@ local function walkTo(targetVector)
     end)
 end
 
+-- PROXIMITY PROMPT NORMAL (Menunggu durasi asli / HoldDuration bawaan game)
 local function fireNearestPrompt()
     pcall(function()
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -187,7 +188,16 @@ local function fireNearestPrompt()
             if v:IsA("ProximityPrompt") and v.Parent then
                 local partPos = v.Parent:IsA("Model") and v.Parent.PrimaryPart and v.Parent.PrimaryPart.Position or (v.Parent:IsA("BasePart") and v.Parent.Position)
                 if partPos and (partPos - hrp.Position).Magnitude <= 15 then
-                    if fireproximityprompt then fireproximityprompt(v) end
+                    -- Tunggu sesuai durasi tahan asli prompt (HoldDuration) agar tidak instan/mencurigakan
+                    if v.HoldDuration and v.HoldDuration > 0 then
+                        task.wait(v.HoldDuration + 0.2)
+                    else
+                        task.wait(0.2)
+                    end
+                    
+                    if fireproximityprompt then 
+                        fireproximityprompt(v) 
+                    end
                 end
             end
         end
@@ -208,12 +218,12 @@ task.spawn(function()
                 slowLoadSeatedTeleport(shiftWaypoints)
                 task.wait(0.5)
                 
-                -- Step 3: Toggle Job & ProximityPrompt
+                -- Step 3: Toggle Job & ProximityPrompt (Durasi Normal)
                 BaristaEvent:FireServer("ToggleJob")
                 fireNearestPrompt()
                 task.wait(1)
 
-                -- Loop Siklus Kerja (Jalan Kaki + Precision Bar Tap-Tap)
+                -- Loop Siklus Kerja (Jalan Kaki + Precision Bar Tap-Tag)
                 while AutoBaristaEnabled do
                     StatusText.Text = "Status: Memanggil Pelanggan..."
                     BaristaEvent:FireServer("RequestCustomer")
@@ -250,10 +260,13 @@ task.spawn(function()
                                         end
                                     end
                                     
-                                    -- Lakukan tap berulang ke tombol minigame
+                                    -- Lakukan tap berulang ke tombol minigame di kotak target
                                     for _, v in pairs(baristaGui:GetDescendants()) do
                                         if (v:IsA("TextButton") or v:IsA("ImageButton")) and firesignal then
-                                            firesignal(v.MouseButton1Click)
+                                            local name = v.Name:lower()
+                                            if name:find("tap") or name:find("target") or name:find("button") or name:find("game") then
+                                                firesignal(v.MouseButton1Click)
+                                            end
                                         end
                                     end
                                 end
@@ -300,4 +313,4 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("[Wind UI] Barista Auto-Farm Pure Precision Tap Bar Berhasil Dimuat!")
+print("[Wind UI] Barista Auto-Farm Normal Proximity Berhasil Dimuat!")
