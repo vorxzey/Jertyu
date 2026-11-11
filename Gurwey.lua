@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - BARISTA AUTO FARM (WIND UI STYLE)
+-- KEREN HUB - BARISTA AUTO FARM (WIND UI + BAR GEDE FIXED)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -117,7 +117,42 @@ task.spawn(function()
     end)
 end)
 
--- Seated Teleport (Ke Shift Spot Jarak Jauh)
+-- 1. FITUR "BAR GEDE" & AUTO CLICK MINIGAME GUI
+task.spawn(function()
+    while task.wait(0.05) do
+        pcall(function()
+            if AutoBaristaEnabled then
+                local baristaGui = PlayerGui:FindFirstChild("BaristaGUI")
+                if baristaGui then
+                    -- Perbesar TargetZone minigame otomatis jadi fullscreen/full size
+                    local targetZone = baristaGui:FindFirstChild("TargetZone", true)
+                    if targetZone then
+                        targetZone.Size = UDim2.new(targetZone.Size.X.Scale, targetZone.Size.X.Offset, 1, 0)
+                    end
+                    
+                    -- Auto click tombol di GUI minigame kalau ada firesignal
+                    for _, v in pairs(baristaGui:GetDescendants()) do
+                        if (v:IsA("TextButton") or v:IsA("ImageButton")) and firesignal then
+                            firesignal(v.MouseButton1Click)
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Pilih Job Barista
+local function selectBaristaJob()
+    pcall(function()
+        local Event = ReplicatedStorage:FindFirstChild("JobEvents") and ReplicatedStorage.JobEvents:FindFirstChild("TeamChangeRequest")
+        if Event then 
+            Event:FireServer("Barista", 11378976, 1, 0, "Detector") 
+        end
+    end)
+end
+
+-- SEATED TELEPORT (Ritme Dihaluskan)
 local function seatedTeleport(targetCFrame)
     pcall(function()
         local char = LocalPlayer.Character
@@ -126,10 +161,11 @@ local function seatedTeleport(targetCFrame)
         if not hrp or not humanoid then return end
 
         humanoid.Sit = true
-        task.wait(0.05)
+        task.wait(0.2)  
         hrp.CFrame = targetCFrame
-        task.wait(0.1)
+        task.wait(0.3)  
         humanoid.Sit = false
+        task.wait(0.2)  
     end)
 end
 
@@ -162,20 +198,27 @@ local function fireNearestPrompt()
     end)
 end
 
--- MAIN LOOP (Mulai dari Request Customer sesuai request)
+-- MAIN LOOP
 task.spawn(function()
     while true do
         if AutoBaristaEnabled then
             pcall(function()
-                -- Step Inisialisasi Awal (Ambil Shift)
-                StatusText.Text = "Status: Mengambil Shift Awal..."
+                -- Step 1: Pilih Job Barista
+                StatusText.Text = "Status: Memilih Job Barista..."
+                selectBaristaJob()
+                task.wait(0.6)
+
+                -- Step 2: Teleport ke Shift Spot (Ritme Aman)
+                StatusText.Text = "Status: Teleport ke Shift Spot..."
                 seatedTeleport(COORDS.ShiftSpot)
                 task.wait(0.3)
+                
+                -- Step 3: Toggle Job buat mulai shift
                 BaristaEvent:FireServer("ToggleJob")
                 fireNearestPrompt()
                 task.wait(1)
 
-                -- Loop Konsisten di Request Customer
+                -- Loop Konsisten Siklus Kerja
                 while AutoBaristaEnabled do
                     StatusText.Text = "Status: Memanggil Pelanggan..."
                     BaristaEvent:FireServer("RequestCustomer")
@@ -223,4 +266,4 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("[Wind UI] Barista Auto-Farm Berhasil Dimuat!")
+print("[Wind UI] Barista Auto-Farm (Complete with Bar Gede) Berhasil Dimuat!")
