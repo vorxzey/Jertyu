@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - BARISTA AUTO FARM (FINAL ULTIMATE CLEAN VERSION)
+-- KEREN HUB - BARISTA AUTO FARM (PURE PRECISION BAR TAP-TAP)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -55,7 +55,7 @@ Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 0, 0, 12)
 Title.Size = UDim2.new(1, 0, 0, 22)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "☕ Wind UI • Barista Auto-Farm"
+Title.Text = "☕ Wind UI • Precision Tap Bar"
 Title.TextColor3 = Color3.fromRGB(240, 240, 255)
 Title.TextSize = 13
 
@@ -125,29 +125,6 @@ task.spawn(function()
     end)
 end)
 
--- Fitur "Bar Gede" & Auto Click Minigame GUI
-task.spawn(function()
-    while task.wait(0.05) do
-        pcall(function()
-            if AutoBaristaEnabled then
-                local baristaGui = PlayerGui:FindFirstChild("BaristaGUI")
-                if baristaGui then
-                    local targetZone = baristaGui:FindFirstChild("TargetZone", true)
-                    if targetZone then
-                        targetZone.Size = UDim2.new(targetZone.Size.X.Scale, targetZone.Size.X.Offset, 1, 0)
-                    end
-                    
-                    for _, v in pairs(baristaGui:GetDescendants()) do
-                        if (v:IsA("TextButton") or v:IsA("ImageButton")) and firesignal then
-                            firesignal(v.MouseButton1Click)
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
-
 -- Pilih Job Barista (Delay 3 detik)
 local function selectBaristaJob()
     pcall(function()
@@ -180,7 +157,7 @@ local function slowLoadSeatedTeleport(waypointList)
     end)
 end
 
--- Fungsi Jalan Melangkah Normal (Anti Macet / Bersih dari CFrame Loop)
+-- Fungsi Jalan Melangkah Normal (Anti Macet)
 local function walkTo(targetVector)
     pcall(function()
         local char = LocalPlayer.Character
@@ -188,10 +165,7 @@ local function walkTo(targetVector)
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not humanoid or not hrp then return end
 
-        -- Arahkan pandangan ke tujuan sekali di awal biar animasi jalannya maju ke depan
         hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetVector.X, hrp.Position.Y, targetVector.Z))
-        
-        -- Perintahkan humanoid berjalan tanpa di-override paksa terus-menerus
         humanoid:MoveTo(targetVector)
         
         local startTime = tick()
@@ -239,32 +213,70 @@ task.spawn(function()
                 fireNearestPrompt()
                 task.wait(1)
 
-                -- Loop Siklus Kerja (Jalan Kaki Normal + Auto Bar Gede)
+                -- Loop Siklus Kerja (Jalan Kaki + Precision Bar Tap-Tap)
                 while AutoBaristaEnabled do
                     StatusText.Text = "Status: Memanggil Pelanggan..."
                     BaristaEvent:FireServer("RequestCustomer")
-                    task.wait(1)
+                    task.wait(math.random(12, 16) / 10)
                     if not AutoBaristaEnabled then break end
 
                     StatusText.Text = "Status: Berjalan ke Mesin Kopi..."
                     walkTo(COORDS.CoffeeMachine)
+                    task.wait(math.random(4, 6) / 10)
+                    
                     BaristaEvent:FireServer("TryBrew")
                     task.wait(0.5)
 
-                    local tokenToUse = LatestToken or "6c0c8fd5-012a-4566-85dc-a5edcbb5cd00"
-                    BaristaEvent:FireServer("StartMinigame", { Token = tokenToUse })
+                    if LatestToken then
+                        BaristaEvent:FireServer("StartMinigame", { Token = LatestToken })
+                        
+                        -- PURE PRECISION BAR TAP-TAP (Nge-tap sambil mantengin bar game sampai penuh)
+                        StatusText.Text = "Status: Tap-Tap Presisi Mengikuti Bar..."
+                        local tapStart = tick()
+                        local maxTimeout = 6.0 -- Safety timeout maksimal 6 detik
+                        local isBarFull = false
+                        
+                        while (tick() - tapStart) < maxTimeout and not isBarFull and AutoBaristaEnabled do
+                            pcall(function()
+                                local baristaGui = PlayerGui:FindFirstChild("BaristaGUI")
+                                if baristaGui then
+                                    -- Cek apakah objek bar/fill sudah mencapai skala penuh (>= 0.99)
+                                    for _, desc in pairs(baristaGui:GetDescendants()) do
+                                        local nameLower = desc.Name:lower()
+                                        if nameLower:find("bar") or nameLower:find("fill") or nameLower:find("progress") or nameLower:find("target") then
+                                            if desc:IsA("GuiObject") and desc.Size.X.Scale >= 0.99 then
+                                                isBarFull = true
+                                            end
+                                        end
+                                    end
+                                    
+                                    -- Lakukan tap berulang ke tombol minigame
+                                    for _, v in pairs(baristaGui:GetDescendants()) do
+                                        if (v:IsA("TextButton") or v:IsA("ImageButton")) and firesignal then
+                                            firesignal(v.MouseButton1Click)
+                                        end
+                                    end
+                                end
+                            end)
+                            
+                            if isBarFull then break end
+                            
+                            -- Jeda acak antar ketukan biar natural (100ms - 220ms)
+                            task.wait(math.random(10, 22) / 100)
+                        end
+                    else
+                        task.wait(2)
+                    end
                     
-                    -- Karena Bar Gede udah auto-selesaiin minigame instan, cukup jeda santai
-                    StatusText.Text = "Status: Meracik Kopi (Auto Bar Gede)..."
-                    task.wait(1.5)
                     if not AutoBaristaEnabled then break end
 
                     StatusText.Text = "Status: Berjalan ke Pelanggan..."
                     walkTo(COORDS.Customer)
+                    task.wait(math.random(4, 7) / 10)
                     BaristaEvent:FireServer("ServeOrder")
                     
                     StatusText.Text = "Status: Selesai, Next Customer..."
-                    task.wait(1.5)
+                    task.wait(math.random(15, 25) / 10)
                 end
             end)
         else
@@ -288,4 +300,4 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("[Wind UI] Barista Auto-Farm Final Clean Version Berhasil Dimuat!")
+print("[Wind UI] Barista Auto-Farm Pure Precision Tap Bar Berhasil Dimuat!")
