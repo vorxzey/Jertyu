@@ -1,9 +1,10 @@
 -- ==========================================
--- KEREN HUB - BARISTA AUTO FARM (NORMAL PROXIMITY & TAP FIX)
+-- KEREN HUB - BARISTA AUTO FARM (ULTIMATE STEALTH VERSION)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
@@ -179,24 +180,32 @@ local function walkTo(targetVector)
     end)
 end
 
--- PROXIMITY PROMPT NORMAL (Menunggu durasi asli / HoldDuration bawaan game)
+-- PROXIMITY PROMPT NATURAL (Simulasi Tahan Tombol E / HoldDuration Asli)
 local function fireNearestPrompt()
     pcall(function()
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
+        
         for _, v in pairs(Workspace:GetDescendants()) do
             if v:IsA("ProximityPrompt") and v.Parent then
                 local partPos = v.Parent:IsA("Model") and v.Parent.PrimaryPart and v.Parent.PrimaryPart.Position or (v.Parent:IsA("BasePart") and v.Parent.Position)
                 if partPos and (partPos - hrp.Position).Magnitude <= 15 then
-                    -- Tunggu sesuai durasi tahan asli prompt (HoldDuration) agar tidak instan/mencurigakan
-                    if v.HoldDuration and v.HoldDuration > 0 then
-                        task.wait(v.HoldDuration + 0.2)
-                    else
-                        task.wait(0.2)
-                    end
+                    local holdTime = v.HoldDuration or 0
                     
-                    if fireproximityprompt then 
-                        fireproximityprompt(v) 
+                    if holdTime > 0 then
+                        -- Simulasi tekan dan tahan tombol E secara natural
+                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        local elapsed = 0
+                        while elapsed < holdTime and AutoBaristaEnabled do
+                            task.wait(0.1)
+                            elapsed = elapsed + 0.1
+                        end
+                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                        task.wait(0.2)
+                    else
+                        if fireproximityprompt then 
+                            fireproximityprompt(v) 
+                        end
                     end
                 end
             end
@@ -218,12 +227,12 @@ task.spawn(function()
                 slowLoadSeatedTeleport(shiftWaypoints)
                 task.wait(0.5)
                 
-                -- Step 3: Toggle Job & ProximityPrompt (Durasi Normal)
+                -- Step 3: Toggle Job & ProximityPrompt (Natural Hold)
                 BaristaEvent:FireServer("ToggleJob")
                 fireNearestPrompt()
                 task.wait(1)
 
-                -- Loop Siklus Kerja (Jalan Kaki + Precision Bar Tap-Tag)
+                -- Loop Siklus Kerja (Jalan Kaki + Precision Bar Tap-Tap)
                 while AutoBaristaEnabled do
                     StatusText.Text = "Status: Memanggil Pelanggan..."
                     BaristaEvent:FireServer("RequestCustomer")
@@ -240,7 +249,7 @@ task.spawn(function()
                     if LatestToken then
                         BaristaEvent:FireServer("StartMinigame", { Token = LatestToken })
                         
-                        -- PURE PRECISION BAR TAP-TAP (Nge-tap sambil mantengin bar game sampai penuh)
+                        -- PURE PRECISION BAR TAP-TAP (Nge-tap spesifik di kotak UI sambil mantengin bar)
                         StatusText.Text = "Status: Tap-Tap Presisi Mengikuti Bar..."
                         local tapStart = tick()
                         local maxTimeout = 6.0 -- Safety timeout maksimal 6 detik
@@ -313,4 +322,4 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("[Wind UI] Barista Auto-Farm Normal Proximity Berhasil Dimuat!")
+print("[Wind UI] Barista Auto-Farm Ultimate Stealth Berhasil Dimuat!")
