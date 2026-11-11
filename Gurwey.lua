@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - BARISTA AUTO FARM (ULTIMATE STEALTH VERSION)
+-- KEREN HUB - OFFICE WORKER (OFFICIAL WIND UI)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,114 +8,58 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Hapus UI lama kalau script-nya di-execute ulang
-if PlayerGui:FindFirstChild("WindUIBarista") then
-    PlayerGui.WindUIBarista:Destroy()
-end
+-- Load WindUI Library resmi dari GitHub repository Footagesus/WindUI
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/main.lua"))()
 
--- ==========================================
--- MEMBUAT CUSTOM WIND UI (MINIMALIST iOS DARK STYLE)
--- ==========================================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "WindUIBarista"
-ScreenGui.Parent = PlayerGui
-ScreenGui.ResetOnSpawn = false
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-MainFrame.Position = UDim2.new(0.5, -125, 0.1, 0)
-MainFrame.Size = UDim2.new(0, 250, 0, 135)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 14)
-UICorner.Parent = MainFrame
-
-local UIGradient = Instance.new("UIGradient")
-UIGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))
+-- Buat Window Utama WindUI
+local Window = WindUI:CreateWindow({
+    Title = "Keren Hub • Office Worker",
+    Icon = "briefcase",
+    Author = "Auto Farm System",
+    Folder = "KerenHubConfig",
+    Size = UDim2.fromOffset(450, 300),
+    Transparent = true,
+    Theme = "Dark", -- Tema Gelap Minimalist
+    SideBarWidth = 140,
+    HasOutline = true,
 })
-UIGradient.Rotation = 45
-UIGradient.Parent = MainFrame
 
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(60, 60, 80)
-UIStroke.Thickness = 1.5
-UIStroke.Parent = MainFrame
+-- Buat Tab Menu
+local MainTab = Window:Tab({
+    Title = "Auto Farm",
+    Icon = "home",
+})
 
--- Title Header
-local Title = Instance.new("TextLabel")
-Title.Parent = MainFrame
-Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 0, 0, 12)
-Title.Size = UDim2.new(1, 0, 0, 22)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "☕ Wind UI • Barista Auto-Farm"
-Title.TextColor3 = Color3.fromRGB(240, 240, 255)
-Title.TextSize = 13
+-- Section Status & Informasi
+local StatusSection = MainTab:Section({
+    Title = "Status Monitor",
+    Content = "Menampilkan status pekerjaan kantor secara real-time.",
+})
 
--- Status Text Label
-local StatusText = Instance.new("TextLabel")
-StatusText.Parent = MainFrame
-StatusText.BackgroundTransparency = 1
-StatusText.Position = UDim2.new(0, 10, 0, 42)
-StatusText.Size = UDim2.new(1, -20, 0, 25)
-StatusText.Font = Enum.Font.Gotham
-StatusText.Text = "Status: Standby (Mati 🔴)"
-StatusText.TextColor3 = Color3.fromRGB(170, 170, 190)
-StatusText.TextSize = 11
-
--- Toggle Button (Wind UI Style)
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Parent = MainFrame
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-ToggleBtn.Position = UDim2.new(0.08, 0, 0, 78)
-ToggleBtn.Size = UDim2.new(0.84, 0, 0, 36)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.Text = "AUTO FARM: OFF"
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.TextSize = 12
-
-local BtnCorner = Instance.new("UICorner")
-BtnCorner.CornerRadius = UDim.new(0, 10)
-BtnCorner.Parent = ToggleBtn
+local StatusParagraph = StatusSection:Paragraph({
+    Title = "Current Status",
+    Desc = "Status: Standby (Mati 🔴)",
+})
 
 -- ==========================================
--- LOGIC AUTO-FARM & WAYPOINT TELEPORT
+-- LOGIC AUTO-FARM OFFICE WORKER
 -- ==========================================
-local AutoBaristaEnabled = false
-local BaristaEvent = ReplicatedStorage:WaitForChild("BaristaAssets"):WaitForChild("Events"):WaitForChild("BaristaEvent")
-local LatestToken = nil
+local AutoOfficeEnabled = false
+local JobEvents = ReplicatedStorage:WaitForChild("JobEvents")
+local ComputersFolder = Workspace:WaitForChild("Computers")
+local CurrentTargetComputer = nil
 
-BaristaEvent.OnClientEvent:Connect(function(action, data)
-    pcall(function()
-        if type(data) == "table" and data.Token then
-            LatestToken = data.Token
-        end
-    end)
+-- Dengerin event dari script game asli
+JobEvents:WaitForChild("AssignPrintJob").OnClientEvent:Connect(function(computerName)
+    CurrentTargetComputer = computerName
+    StatusParagraph:SetDesc("Status: Menuju ke " .. tostring(computerName))
 end)
 
-local COORDS = {
-    ShiftSpot     = Vector3.new(-4992.262, 4.287, -716.253),
-    CoffeeMachine = Vector3.new(-4997.648, 4.287, -794.613),
-    Customer      = Vector3.new(-4996.451, 4.287, -760.959)
-}
-
--- List Kordinat Waypoint Slow Load Seated Teleport
-local shiftWaypoints = {
-    CFrame.new(-898.326, 2.788, -630.031),
-    CFrame.new(-2192.834, 37.488, -582.452),
-    CFrame.new(-3533.805, 2.759, -582.758),
-    CFrame.new(-4554.525, 2.759, -581.123),
-    CFrame.new(-4943.070, 2.759, -582.773),
-    CFrame.new(COORDS.ShiftSpot.X, COORDS.ShiftSpot.Y, COORDS.ShiftSpot.Z)
-}
+JobEvents:WaitForChild("ClearPrintJob").OnClientEvent:Connect(function()
+    CurrentTargetComputer = nil
+    StatusParagraph:SetDesc("Status: Tugas Selesai, Menunggu Print Baru...")
+end)
 
 -- Anti-AFK
 task.spawn(function()
@@ -126,53 +70,33 @@ task.spawn(function()
     end)
 end)
 
--- Pilih Job Barista (Delay 3 detik)
-local function selectBaristaJob()
+-- Join Team Office Worker
+local function selectOfficeJob()
     pcall(function()
-        local Event = ReplicatedStorage:FindFirstChild("JobEvents") and ReplicatedStorage.JobEvents:FindFirstChild("TeamChangeRequest")
-        if Event then 
-            Event:FireServer("Barista", 11378976, 1, 0, "Detector") 
-            task.wait(3) 
+        local TeamChange = JobEvents:FindFirstChild("TeamChangeRequest")
+        if TeamChange then
+            TeamChange:FireServer("Office Worker", 11378976, 1, 0, "Detector")
+            task.wait(2)
         end
     end)
 end
 
--- Slow Load Seated Teleport dengan jeda 0,5 detik per waypoint
-local function slowLoadSeatedTeleport(waypointList)
-    pcall(function()
-        local char = LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if not hrp or not humanoid then return end
-
-        for _, targetCFrame in ipairs(waypointList) do
-            if not AutoBaristaEnabled then break end
-            humanoid.Sit = true
-            task.wait(0.15)
-            hrp.CFrame = targetCFrame
-            task.wait(0.5)
-        end
-
-        humanoid.Sit = false
-        task.wait(0.2)
-    end)
-end
-
--- Fungsi Jalan Melangkah Normal (Anti Macet)
-local function walkTo(targetVector)
+-- Jalan Normal ke Printer Target
+local function walkToPart(targetPart)
     pcall(function()
         local char = LocalPlayer.Character
         local humanoid = char and char:FindFirstChildOfClass("Humanoid")
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not humanoid or not hrp then return end
+        if not humanoid or not hrp or not targetPart then return end
 
-        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetVector.X, hrp.Position.Y, targetVector.Z))
-        humanoid:MoveTo(targetVector)
+        local targetPos = targetPart.Position
+        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
+        humanoid:MoveTo(targetPos)
         
         local startTime = tick()
-        while AutoBaristaEnabled do
-            local dist = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(targetVector.X, 0, targetVector.Z)).Magnitude
-            if dist <= 3.5 or (tick() - startTime) > 6 then
+        while AutoOfficeEnabled and CurrentTargetComputer do
+            local dist = (Vector3.new(hrp.Position.X, 0, hrp.Position.Z) - Vector3.new(targetPos.X, 0, targetPos.Z)).Magnitude
+            if dist <= 4 or (tick() - startTime) > 8 then
                 break
             end
             task.wait(0.2)
@@ -180,146 +104,84 @@ local function walkTo(targetVector)
     end)
 end
 
--- PROXIMITY PROMPT NATURAL (Simulasi Tahan Tombol E / HoldDuration Asli)
-local function fireNearestPrompt()
-    pcall(function()
-        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        
-        for _, v in pairs(Workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") and v.Parent then
-                local partPos = v.Parent:IsA("Model") and v.Parent.PrimaryPart and v.Parent.PrimaryPart.Position or (v.Parent:IsA("BasePart") and v.Parent.Position)
-                if partPos and (partPos - hrp.Position).Magnitude <= 15 then
-                    local holdTime = v.HoldDuration or 0
-                    
-                    if holdTime > 0 then
-                        -- Simulasi tekan dan tahan tombol E secara natural
-                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                        local elapsed = 0
-                        while elapsed < holdTime and AutoBaristaEnabled do
-                            task.wait(0.1)
-                            elapsed = elapsed + 0.1
-                        end
-                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                        task.wait(0.2)
-                    else
-                        if fireproximityprompt then 
-                            fireproximityprompt(v) 
-                        end
-                    end
-                end
-            end
+-- Interaksi ProximityPrompt Natural (Anti-Kick)
+local function interactPrompt(prompt)
+    if not prompt or not prompt.Enabled then return end
+    
+    local holdTime = prompt.HoldDuration or 0
+    if holdTime > 0 then
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        local elapsed = 0
+        while elapsed < holdTime and AutoOfficeEnabled do
+            task.wait(0.1)
+            elapsed = elapsed + 0.1
         end
-    end)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+    else
+        if fireproximityprompt then
+            fireproximityprompt(prompt)
+        end
+    end
 end
 
--- MAIN LOOP
+-- MAIN LOOP AUTO FARM
 task.spawn(function()
     while true do
-        if AutoBaristaEnabled then
+        if AutoOfficeEnabled then
             pcall(function()
-                -- Step 1: Pilih Job Barista
-                StatusText.Text = "Status: Memilih Job Barista..."
-                selectBaristaJob()
+                -- 1. Pastikan Masuk Tim Office Worker
+                if not (LocalPlayer.Team and LocalPlayer.Team.Name == "Office Worker") then
+                    StatusParagraph:SetDesc("Status: Masuk ke Tim Office Worker...")
+                    selectOfficeJob()
+                end
 
-                -- Step 2: Slow Load Seated Teleport ke Shift Spot
-                StatusText.Text = "Status: Teleport ke Shift Spot..."
-                slowLoadSeatedTeleport(shiftWaypoints)
-                task.wait(0.5)
-                
-                -- Step 3: Toggle Job & ProximityPrompt (Natural Hold)
-                BaristaEvent:FireServer("ToggleJob")
-                fireNearestPrompt()
-                task.wait(1)
+                -- 2. Eksekusi Komputer / Printer yang Ditunjuk
+                if CurrentTargetComputer then
+                    local targetModel = ComputersFolder:FindFirstChild(CurrentTargetComputer)
+                    if targetModel and targetModel:FindFirstChild("Part") then
+                        local targetPart = targetModel.Part
+                        local prompt = targetPart:FindFirstChildOfClass("ProximityPrompt")
 
-                -- Loop Siklus Kerja (Jalan Kaki + Precision Bar Tap-Tap)
-                while AutoBaristaEnabled do
-                    StatusText.Text = "Status: Memanggil Pelanggan..."
-                    BaristaEvent:FireServer("RequestCustomer")
-                    task.wait(math.random(12, 16) / 10)
-                    if not AutoBaristaEnabled then break end
-
-                    StatusText.Text = "Status: Berjalan ke Mesin Kopi..."
-                    walkTo(COORDS.CoffeeMachine)
-                    task.wait(math.random(4, 6) / 10)
-                    
-                    BaristaEvent:FireServer("TryBrew")
-                    task.wait(0.5)
-
-                    if LatestToken then
-                        BaristaEvent:FireServer("StartMinigame", { Token = LatestToken })
+                        StatusParagraph:SetDesc("Status: Berjalan ke " .. CurrentTargetComputer)
+                        walkToPart(targetPart)
                         
-                        -- PURE PRECISION BAR TAP-TAP (Nge-tap spesifik di kotak UI sambil mantengin bar)
-                        StatusText.Text = "Status: Tap-Tap Presisi Mengikuti Bar..."
-                        local tapStart = tick()
-                        local maxTimeout = 6.0 -- Safety timeout maksimal 6 detik
-                        local isBarFull = false
+                        task.wait(math.random(3, 5) / 10)
                         
-                        while (tick() - tapStart) < maxTimeout and not isBarFull and AutoBaristaEnabled do
-                            pcall(function()
-                                local baristaGui = PlayerGui:FindFirstChild("BaristaGUI")
-                                if baristaGui then
-                                    -- Cek apakah objek bar/fill sudah mencapai skala penuh (>= 0.99)
-                                    for _, desc in pairs(baristaGui:GetDescendants()) do
-                                        local nameLower = desc.Name:lower()
-                                        if nameLower:find("bar") or nameLower:find("fill") or nameLower:find("progress") or nameLower:find("target") then
-                                            if desc:IsA("GuiObject") and desc.Size.X.Scale >= 0.99 then
-                                                isBarFull = true
-                                            end
-                                        end
-                                    end
-                                    
-                                    -- Lakukan tap berulang ke tombol minigame di kotak target
-                                    for _, v in pairs(baristaGui:GetDescendants()) do
-                                        if (v:IsA("TextButton") or v:IsA("ImageButton")) and firesignal then
-                                            local name = v.Name:lower()
-                                            if name:find("tap") or name:find("target") or name:find("button") or name:find("game") then
-                                                firesignal(v.MouseButton1Click)
-                                            end
-                                        end
-                                    end
-                                end
-                            end)
-                            
-                            if isBarFull then break end
-                            
-                            -- Jeda acak antar ketukan biar natural (100ms - 220ms)
-                            task.wait(math.random(10, 22) / 100)
+                        if prompt and prompt.Enabled then
+                            StatusParagraph:SetDesc("Status: Memproses Dokumen Printer...")
+                            interactPrompt(prompt)
                         end
-                    else
-                        task.wait(2)
                     end
-                    
-                    if not AutoBaristaEnabled then break end
-
-                    StatusText.Text = "Status: Berjalan ke Pelanggan..."
-                    walkTo(COORDS.Customer)
-                    task.wait(math.random(4, 7) / 10)
-                    BaristaEvent:FireServer("ServeOrder")
-                    
-                    StatusText.Text = "Status: Selesai, Next Customer..."
-                    task.wait(math.random(15, 25) / 10)
+                else
+                    StatusParagraph:SetDesc("Status: Standby Menunggu Job Printer...")
                 end
             end)
         else
-            StatusText.Text = "Status: Standby (Mati 🔴)"
-            task.wait(0.5)
+            StatusParagraph:SetDesc("Status: Standby (Mati 🔴)")
         end
-        task.wait(0.5)
+        task.wait(1)
     end
 end)
 
--- Tombol On / Off Callback
-ToggleBtn.MouseButton1Click:Connect(function()
-    AutoBaristaEnabled = not AutoBaristaEnabled
-    if AutoBaristaEnabled then
-        ToggleBtn.Text = "AUTO FARM: ON"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 90)
-    else
-        ToggleBtn.Text = "AUTO FARM: OFF"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-        StatusText.Text = "Status: Dimatikan Manual"
+-- Tombol Toggle Menggunakan Komponen Asli WindUI
+MainTab:Toggle({
+    Title = "Auto Farm Office",
+    Desc = "Otomatis ambil tugas print dan interaksi komputer",
+    Value = false,
+    Callback = function(state)
+        AutoOfficeEnabled = state
+        if AutoOfficeEnabled then
+            StatusParagraph:SetDesc("Status: Auto Farm Aktif 🟢")
+        else
+            StatusParagraph:SetDesc("Status: Dimatikan Manual 🔴")
+        end
     end
-end)
+})
 
-print("[Wind UI] Barista Auto-Farm Ultimate Stealth Berhasil Dimuat!")
+-- Notifikasi Berhasil Load
+WindUI:Notify({
+    Title = "Keren Hub Loaded",
+    Content = "Script Office Worker menggunakan WindUI berhasil dimuat!",
+    Duration = 3
+})
