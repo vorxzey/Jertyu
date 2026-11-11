@@ -1,5 +1,5 @@
 -- ==========================================
--- KEREN HUB - OFFICE WORKER (OFFICIAL WIND UI)
+-- KEREN HUB - OFFICE WORKER (STANDALONE GUI)
 -- ==========================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,39 +8,87 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Load WindUI Library resmi dari GitHub repository Footagesus/WindUI
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/main.lua"))()
+-- Hapus UI lama jika ada
+if PlayerGui:FindFirstChild("KerenHubOfficeUI") then
+    PlayerGui.KerenHubOfficeUI:Destroy()
+end
 
--- Buat Window Utama WindUI
-local Window = WindUI:CreateWindow({
-    Title = "Keren Hub • Office Worker",
-    Icon = "briefcase",
-    Author = "Auto Farm System",
-    Folder = "KerenHubConfig",
-    Size = UDim2.fromOffset(450, 300),
-    Transparent = true,
-    Theme = "Dark", -- Tema Gelap Minimalist
-    SideBarWidth = 140,
-    HasOutline = true,
-})
+-- ==========================================
+-- MEMBUAT TAMPILAN GUI MANUAL (ANTI GAGAL LOAD)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KerenHubOfficeUI"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
 
--- Buat Tab Menu
-local MainTab = Window:Tab({
-    Title = "Auto Farm",
-    Icon = "home",
-})
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MainFrame.Position = UDim2.new(0.5, -140, 0.15, 0)
+MainFrame.Size = UDim2.new(0, 280, 0, 150)
+MainFrame.Active = true
+MainFrame.Draggable = true
 
--- Section Status & Informasi
-local StatusSection = MainTab:Section({
-    Title = "Status Monitor",
-    Content = "Menampilkan status pekerjaan kantor secara real-time.",
-})
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 16)
+MainCorner.Parent = MainFrame
 
-local StatusParagraph = StatusSection:Paragraph({
-    Title = "Current Status",
-    Desc = "Status: Standby (Mati 🔴)",
-})
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(60, 60, 80)
+MainStroke.Thickness = 1.5
+MainStroke.Parent = MainFrame
+
+-- Header Title
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = MainFrame
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 14, 0, 12)
+TitleLabel.Size = UDim2.new(1, -28, 0, 20)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "💼 Keren Hub • Office Worker"
+TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 255)
+TitleLabel.TextSize = 13
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Status Card
+local StatusCard = Instance.new("Frame")
+StatusCard.Parent = MainFrame
+StatusCard.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+StatusCard.Position = UDim2.new(0.06, 0, 0, 42)
+StatusCard.Size = UDim2.new(0.88, 0, 0, 38)
+
+local CardCorner = Instance.new("UICorner")
+CardCorner.CornerRadius = UDim.new(0, 10)
+CardCorner.Parent = StatusCard
+
+local StatusText = Instance.new("TextLabel")
+StatusText.Parent = StatusCard
+StatusText.BackgroundTransparency = 1
+StatusText.Position = UDim2.new(0, 10, 0, 0)
+StatusText.Size = UDim2.new(1, -20, 1, 0)
+StatusText.Font = Enum.Font.GothamMedium
+StatusText.Text = "Status: Standby (Mati 🔴)"
+StatusText.TextColor3 = Color3.fromRGB(180, 180, 200)
+StatusText.TextSize = 11
+StatusText.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Toggle Button
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Parent = MainFrame
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(210, 45, 45)
+ToggleBtn.Position = UDim2.new(0.06, 0, 0, 92)
+ToggleBtn.Size = UDim2.new(0.88, 0, 0, 40)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "AUTO FARM: OFF"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 12
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 10)
+ToggleCorner.Parent = ToggleBtn
 
 -- ==========================================
 -- LOGIC AUTO-FARM OFFICE WORKER
@@ -50,15 +98,15 @@ local JobEvents = ReplicatedStorage:WaitForChild("JobEvents")
 local ComputersFolder = Workspace:WaitForChild("Computers")
 local CurrentTargetComputer = nil
 
--- Dengerin event dari script game asli
+-- Dengerin Event Game Asli
 JobEvents:WaitForChild("AssignPrintJob").OnClientEvent:Connect(function(computerName)
     CurrentTargetComputer = computerName
-    StatusParagraph:SetDesc("Status: Menuju ke " .. tostring(computerName))
+    StatusText.Text = "Job: " .. tostring(computerName)
 end)
 
 JobEvents:WaitForChild("ClearPrintJob").OnClientEvent:Connect(function()
     CurrentTargetComputer = nil
-    StatusParagraph:SetDesc("Status: Tugas Selesai, Menunggu Print Baru...")
+    StatusText.Text = "Status: Menunggu Job Baru..."
 end)
 
 -- Anti-AFK
@@ -104,7 +152,7 @@ local function walkToPart(targetPart)
     end)
 end
 
--- Interaksi ProximityPrompt Natural (Anti-Kick)
+-- Interaksi ProximityPrompt Natural
 local function interactPrompt(prompt)
     if not prompt or not prompt.Enabled then return end
     
@@ -125,63 +173,54 @@ local function interactPrompt(prompt)
     end
 end
 
--- MAIN LOOP AUTO FARM
+-- LOOP UTAMA
 task.spawn(function()
     while true do
         if AutoOfficeEnabled then
             pcall(function()
-                -- 1. Pastikan Masuk Tim Office Worker
                 if not (LocalPlayer.Team and LocalPlayer.Team.Name == "Office Worker") then
-                    StatusParagraph:SetDesc("Status: Masuk ke Tim Office Worker...")
+                    StatusText.Text = "Status: Masuk Tim Office..."
                     selectOfficeJob()
                 end
 
-                -- 2. Eksekusi Komputer / Printer yang Ditunjuk
                 if CurrentTargetComputer then
                     local targetModel = ComputersFolder:FindFirstChild(CurrentTargetComputer)
                     if targetModel and targetModel:FindFirstChild("Part") then
                         local targetPart = targetModel.Part
                         local prompt = targetPart:FindFirstChildOfClass("ProximityPrompt")
 
-                        StatusParagraph:SetDesc("Status: Berjalan ke " .. CurrentTargetComputer)
+                        StatusText.Text = "Menuju: " .. CurrentTargetComputer
                         walkToPart(targetPart)
                         
                         task.wait(math.random(3, 5) / 10)
                         
                         if prompt and prompt.Enabled then
-                            StatusParagraph:SetDesc("Status: Memproses Dokumen Printer...")
+                            StatusText.Text = "Memproses Dokumen..."
                             interactPrompt(prompt)
                         end
                     end
                 else
-                    StatusParagraph:SetDesc("Status: Standby Menunggu Job Printer...")
+                    StatusText.Text = "Status: Menunggu Print..."
                 end
             end)
         else
-            StatusParagraph:SetDesc("Status: Standby (Mati 🔴)")
+            StatusText.Text = "Status: Standby (Mati 🔴)"
         end
         task.wait(1)
+    end)
+end)
+
+-- Tombol On/Off Callback
+ToggleBtn.MouseButton1Click:Connect(function()
+    AutoOfficeEnabled = not AutoOfficeEnabled
+    if AutoOfficeEnabled then
+        ToggleBtn.Text = "AUTO FARM: ON"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 200, 95)
+    else
+        ToggleBtn.Text = "AUTO FARM: OFF"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(210, 45, 45)
+        StatusText.Text = "Status: Dimatikan Manual"
     end
 end)
 
--- Tombol Toggle Menggunakan Komponen Asli WindUI
-MainTab:Toggle({
-    Title = "Auto Farm Office",
-    Desc = "Otomatis ambil tugas print dan interaksi komputer",
-    Value = false,
-    Callback = function(state)
-        AutoOfficeEnabled = state
-        if AutoOfficeEnabled then
-            StatusParagraph:SetDesc("Status: Auto Farm Aktif 🟢")
-        else
-            StatusParagraph:SetDesc("Status: Dimatikan Manual 🔴")
-        end
-    end
-})
-
--- Notifikasi Berhasil Load
-WindUI:Notify({
-    Title = "Keren Hub Loaded",
-    Content = "Script Office Worker menggunakan WindUI berhasil dimuat!",
-    Duration = 3
-})
+print("[Keren Hub] Office Worker Standalone UI Berhasil Dimuat!")
